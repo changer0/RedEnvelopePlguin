@@ -2,6 +2,8 @@ package com.example.zhanglulu.redenvelopeplgu_in;
 
 import android.accessibilityservice.AccessibilityService;
 import android.accessibilityservice.GestureDescription;
+import android.app.Notification;
+import android.app.PendingIntent;
 import android.graphics.Path;
 import android.graphics.Point;
 import android.os.Build;
@@ -21,7 +23,7 @@ import java.util.Random;
  */
 
 public class RedEnvelopAccessibility extends AccessibilityService {
-    private static final String TAG = "InstallHelperAccessibil";
+    private static final String TAG = "RedEnvelopAccessibility";
     private Handler mHandler = new Handler();
 
     /**
@@ -33,77 +35,143 @@ public class RedEnvelopAccessibility extends AccessibilityService {
      */
     @Override
     public void onAccessibilityEvent(AccessibilityEvent event) {
+
+        AccessibilityNodeInfo rootInActiveWindow = getRootInActiveWindow();
+
         //event.getSource:得到的是被点击的单体对象
         //getRootInActiveWindow():整个窗口的对象
-        if (event.getPackageName().equals("com.tencent.mm")) {
-            try {
-                click();
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
+        switch (event.getEventType()) {
+            case AccessibilityEvent.TYPE_NOTIFICATION_STATE_CHANGED:
+                clickNotification(rootInActiveWindow, event);
+                break;
+            default:
+                if (event.getPackageName().equals("com.tencent.mm")) {
+                    clickWeiChat(rootInActiveWindow);
+                }
         }
+
         showAllText(getRootInActiveWindow());
     }
 
+    private int mCurState = DEFAULT;
+    public static final int DEFAULT = 0;
+    public static final int CHECK_RED = 1;
+    public static final int GET_RED = 2;
     /**
      * 点击
      * @throws Exception
      */
-    private void click() throws Exception{
-        AccessibilityNodeInfo rootInActiveWindow = getRootInActiveWindow();
+    private void clickWeiChat(final AccessibilityNodeInfo rootInActiveWindow) {
+
         if (rootInActiveWindow != null) {
-            //查看红包
-            List<AccessibilityNodeInfo> checkRedNodeInfos = rootInActiveWindow.findAccessibilityNodeInfosByText("查看红包");
-            if (checkRedNodeInfos != null && checkRedNodeInfos.size() > 0) {
-                for (int i = 0; i < checkRedNodeInfos.size(); i++) {
-                    AccessibilityNodeInfo nodeInfo = checkRedNodeInfos.get(i);
-                    if (nodeInfo != null) {
-                        AccessibilityNodeInfo linearNodeInfo = nodeInfo.getParent();
-                        if (linearNodeInfo != null) {
-                            AccessibilityNodeInfo relativeNodeInfo = linearNodeInfo.getParent();
-                            if (relativeNodeInfo != null) {
-                                AccessibilityNodeInfo linearNodeInfoP = relativeNodeInfo.getParent();
-                                if (linearNodeInfoP != null) {
-                                    AccessibilityNodeInfo linearNodeInfoRoot = linearNodeInfoP.getParent();
-                                    if (linearNodeInfoRoot != null) {
-                                        if (linearNodeInfoRoot.isClickable()) {
-                                            linearNodeInfoRoot.performAction(AccessibilityNodeInfo.ACTION_CLICK);
+            //自己发的红包
+            if (mCurState == DEFAULT) {
+                List<AccessibilityNodeInfo> checkRedNodeInfos = null;
+                List<AccessibilityNodeInfo> ownerRed = rootInActiveWindow.findAccessibilityNodeInfosByText("查看红包");
+                List<AccessibilityNodeInfo> otherRed = rootInActiveWindow.findAccessibilityNodeInfosByText("领取红包");
+                if (ownerRed.size() > 0) {
+                    checkRedNodeInfos = ownerRed;
+                } else if (otherRed.size() > 0) {
+                    checkRedNodeInfos = otherRed;
+                }
+
+
+                if (checkRedNodeInfos != null && checkRedNodeInfos.size() > 0) {
+                    for (int i = 0; i < checkRedNodeInfos.size(); i++) {
+                        AccessibilityNodeInfo nodeInfo = checkRedNodeInfos.get(i);
+                        if (nodeInfo != null) {
+                            AccessibilityNodeInfo linearNodeInfo = nodeInfo.getParent();
+                            if (linearNodeInfo != null) {
+                                AccessibilityNodeInfo relativeNodeInfo = linearNodeInfo.getParent();
+                                if (relativeNodeInfo != null) {
+                                    AccessibilityNodeInfo linearNodeInfoP = relativeNodeInfo.getParent();
+                                    if (linearNodeInfoP != null) {
+                                        AccessibilityNodeInfo linearNodeInfoRoot = linearNodeInfoP.getParent();
+                                        if (linearNodeInfoRoot != null) {
+                                            if (linearNodeInfoRoot.isClickable()) {
+                                                linearNodeInfoRoot.performAction(AccessibilityNodeInfo.ACTION_CLICK);
+                                                mCurState = CHECK_RED;
+                                            }
                                         }
                                     }
                                 }
                             }
-                        }
 
+                        }
                     }
                 }
+
             }
+
             //点击抢红包
-            List<AccessibilityNodeInfo> payRedInfoNodes = rootInActiveWindow.findAccessibilityNodeInfosByText("发了一个红包，金额随机");
-            for (int i = 0; i < payRedInfoNodes.size(); i++) {
-                AccessibilityNodeInfo payNodeTextNode = payRedInfoNodes.get(i);
-                AccessibilityNodeInfo payNodeLinearNode = payNodeTextNode.getParent();
-                if (payNodeLinearNode != null) {
-                    AccessibilityNodeInfo payNodeLinearNodeParent = payNodeLinearNode.getParent();
-                    if (payNodeLinearNodeParent != null) {
-                        if (payNodeLinearNodeParent.getChildCount() > 2) {
-                            final AccessibilityNodeInfo getRedNode = payNodeLinearNodeParent.getChild(2);
-                            if (getRedNode != null) {
-                                if (getRedNode.getClassName().equals(Button.class.getName())) {
-                                    mHandler.postDelayed(new Runnable() {
-                                        @Override
-                                        public void run() {
-                                            getRedNode.performAction(AccessibilityNodeInfo.ACTION_CLICK);
-                                            performGlobalAction(GLOBAL_ACTION_BACK);
-                                        }
-                                    }, 800);
+            if (mCurState == CHECK_RED) {
+                List<AccessibilityNodeInfo> getRedNodeInfos = rootInActiveWindow.findAccessibilityNodeInfosByText("发了一个红包，金额随机");
+                for (int i = 0; i < getRedNodeInfos.size(); i++) {
+                    AccessibilityNodeInfo payNodeTextNode = getRedNodeInfos.get(i);
+                    AccessibilityNodeInfo payNodeLinearNode = payNodeTextNode.getParent();
+                    if (payNodeLinearNode != null) {
+                        AccessibilityNodeInfo payNodeLinearNodeParent = payNodeLinearNode.getParent();
+                        if (payNodeLinearNodeParent != null) {
+                            if (payNodeLinearNodeParent.getChildCount() > 2) {
+                                final AccessibilityNodeInfo getRedNode = payNodeLinearNodeParent.getChild(2);
+                                if (getRedNode != null) {
+                                    if (getRedNode.getClassName().equals(Button.class.getName())) {
+                                        mHandler.postDelayed(new Runnable() {
+                                            @Override
+                                            public void run() {
+                                                getRedNode.performAction(AccessibilityNodeInfo.ACTION_CLICK);
+                                                mCurState = GET_RED;
+                                            }
+                                        }, 800);
+
+                                    }
                                 }
                             }
+
                         }
 
                     }
 
                 }
+            }
+            //已经抢到了红包，之后就点击返回键
+            if (mCurState == GET_RED) {
+                mHandler.postDelayed(new Runnable() {
+                    @Override
+                    public void run() {
+                        mCurState = DEFAULT;
+                        List<AccessibilityNodeInfo> endNodeInfos1 = rootInActiveWindow.findAccessibilityNodeInfosByText("已存入零钱，可直接消费");
+                        List<AccessibilityNodeInfo> endNodeInfos2 = rootInActiveWindow.findAccessibilityNodeInfosByText("手慢了，红包派完了");
+                        List<AccessibilityNodeInfo> endNodeInfos3 = rootInActiveWindow.findAccessibilityNodeInfosByText("已存入零钱，可用于发红包");
+                        List<AccessibilityNodeInfo> endNodeInfos4 = rootInActiveWindow.findAccessibilityNodeInfosByText("红包详情");
+                        if (endNodeInfos1.size() > 0 || endNodeInfos2.size() > 0 || endNodeInfos3.size() > 0 || endNodeInfos4.size() > 0) {
+                            performGlobalAction(GLOBAL_ACTION_BACK);
+                            Log.d(TAG, "clickWeiChat: ddddd 点击了返回键");
+                        }
+                    }
+                }, 500);
+            }
+        }
+    }
 
+    /**
+     * 点击通知栏
+     * @param rootInActiveWindow
+     * @param event
+     */
+    private void clickNotification(AccessibilityNodeInfo rootInActiveWindow, AccessibilityEvent event) {
+        List<CharSequence> eventText = event.getText();
+        if (eventText != null) {
+            for (CharSequence key : eventText) {
+                Log.d(TAG, "clickNotification: key=>" + key);
+                if (((String) key).contains("微信红包")) {
+                    Notification notification = (Notification) event.getParcelableData();
+                    try {
+                        notification.contentIntent.send();//点击通知栏
+                    } catch (PendingIntent.CanceledException e) {
+                        e.printStackTrace();
+                    }
+                }
             }
         }
     }
