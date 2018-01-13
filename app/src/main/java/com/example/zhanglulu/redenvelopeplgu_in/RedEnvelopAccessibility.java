@@ -12,7 +12,6 @@ import android.util.Log;
 import android.view.accessibility.AccessibilityEvent;
 import android.view.accessibility.AccessibilityNodeInfo;
 import android.widget.Button;
-import android.widget.Toast;
 
 import java.util.List;
 import java.util.Random;
@@ -164,7 +163,7 @@ public class RedEnvelopAccessibility extends AccessibilityService {
         if (eventText != null) {
             for (CharSequence key : eventText) {
                 Log.d(TAG, "clickNotification: key=>" + key);
-                if (((String) key).contains("微信红包")) {
+                if (((String) key).contains("[微信红包]")) {
                     Notification notification = (Notification) event.getParcelableData();
                     try {
                         notification.contentIntent.send();//点击通知栏
@@ -231,7 +230,7 @@ public class RedEnvelopAccessibility extends AccessibilityService {
      */
     @Override
     public void onInterrupt() {
-        Toast.makeText(this, "权限中断", Toast.LENGTH_SHORT).show();
+        Log.e(TAG, "onInterrupt");
     }
 
 }
