@@ -7,16 +7,77 @@
     android:padding="20dp"
     tools:context="com.example.zhanglulu.redenvelopeplgu_in.MainActivity">
 
+    <Switch
+        android:id="@+id/start"
+        android:text="开启抢红包插件"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content" />
 
-    <Button
-        android:id="@+id/check_permission"
+    <Switch
+        android:id="@+id/set_get_owner_red"
+        android:text="抢自己发的红包"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="检查权限"/>
-    <Button
-        android:id="@+id/check_services_running"
+        android:layout_height="wrap_content" />
+
+    <!--<Button-->
+        <!--android:id="@+id/reset"-->
+        <!--android:layout_marginTop="10dp"-->
+        <!--android:layout_width="match_parent"-->
+        <!--android:layout_height="wrap_content"-->
+        <!--android:text="重置抢红包插件" />-->
+
+    <LinearLayout
+        android:orientation="horizontal"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="检查服务是否运行" />
+        android:layout_height="wrap_content">
+        <Button
+            android:id="@+id/set_delay_time"
+            android:text="设置延迟时间"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content" />
+        <EditText
+            android:layout_weight="1"
+            android:id="@+id/delay_timte"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content" />
+        <TextView
+            android:text="毫秒"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content" />
+
+    </LinearLayout>
+    <TextView
+        android:text="如果发现不能抢红包,请抢弹出的抢红包页面的位置放在下面"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content" />
+
+    <LinearLayout
+        android:orientation="horizontal"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content">
+        <TextView
+            android:text="x:"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content" />
+        <EditText
+            android:id="@+id/x_et"
+            android:layout_weight="1"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content" />
+        <TextView
+            android:text="y:"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content" />
+        <EditText
+            android:id="@+id/y_et"
+            android:layout_weight="1"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content" />
+    </LinearLayout>
+    <Button
+        android:text="设置位置"
+        android:id="@+id/set_location"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content" />
 
 </LinearLayout>

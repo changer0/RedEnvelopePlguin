@@ -4,6 +4,8 @@ import android.accessibilityservice.AccessibilityService;
 import android.accessibilityservice.GestureDescription;
 import android.app.Notification;
 import android.app.PendingIntent;
+import android.content.Intent;
+import android.content.SharedPreferences;
 import android.graphics.Path;
 import android.graphics.Point;
 import android.os.Build;
@@ -11,7 +13,6 @@ import android.os.Handler;
 import android.util.Log;
 import android.view.accessibility.AccessibilityEvent;
 import android.view.accessibility.AccessibilityNodeInfo;
-import android.widget.Button;
 
 import java.util.List;
 import java.util.Random;
@@ -25,6 +26,24 @@ public class RedEnvelopAccessibility extends AccessibilityService {
     private static final String TAG = "RedEnvelopAccessibility";
     private Handler mHandler = new Handler();
 
+    public static final String RED_ENVELOP_SP = "RED_ENVELOP_SP";
+    public static final String SET_DELAY_TIME = "SET_DELAY_TIME";
+    public static final String SET_LOCATION_X = "SET_LOCATION_X";
+    public static final String SET_LOCATION_Y = "SET_LOCATION_Y";
+    public static final String SET_OWNER_RED = "SET_OWNER_RED";
+
+
+    @Override
+    public void onCreate() {
+        super.onCreate();
+        sCurState = DEFAULT;
+    }
+
+    @Override
+    public int onStartCommand(Intent intent, int flags, int startId) {
+        return super.onStartCommand(intent, flags, startId);
+    }
+
     /**
      * 页面变化回调事件
      * @param event event.getEventType() 当前事件的类型;
@@ -35,27 +54,33 @@ public class RedEnvelopAccessibility extends AccessibilityService {
     @Override
     public void onAccessibilityEvent(AccessibilityEvent event) {
 
-        AccessibilityNodeInfo rootInActiveWindow = getRootInActiveWindow();
+        if (sCurState != STOP_RED) {
+            Log.d(TAG, "onAccessibilityEvent: sCurState=>" + sCurState);
+            AccessibilityNodeInfo rootInActiveWindow = getRootInActiveWindow();
 
-        //event.getSource:得到的是被点击的单体对象
-        //getRootInActiveWindow():整个窗口的对象
-        switch (event.getEventType()) {
-            case AccessibilityEvent.TYPE_NOTIFICATION_STATE_CHANGED:
-                clickNotification(rootInActiveWindow, event);
-                break;
-            default:
-                if (event.getPackageName().equals("com.tencent.mm")) {
-                    clickWeiChat(rootInActiveWindow);
-                }
+            //event.getSource:得到的是被点击的单体对象
+            //getRootInActiveWindow():整个窗口的对象
+            switch (event.getEventType()) {
+                case AccessibilityEvent.TYPE_NOTIFICATION_STATE_CHANGED:
+                    clickNotification(rootInActiveWindow, event);
+                    break;
+                default:
+                    if (event.getPackageName().equals("com.tencent.mm")) {
+                        clickWeiChat(rootInActiveWindow);
+                    }
+            }
+
+            showAllText(getRootInActiveWindow());
         }
 
-        showAllText(getRootInActiveWindow());
     }
 
-    private int mCurState = DEFAULT;
+    public static int sCurState;
     public static final int DEFAULT = 0;
     public static final int CHECK_RED = 1;
     public static final int GET_RED = 2;
+    public static final int STOP_RED = 3;
+
     /**
      * 点击
      * @throws Exception
@@ -64,7 +89,7 @@ public class RedEnvelopAccessibility extends AccessibilityService {
 
         if (rootInActiveWindow != null) {
             //自己发的红包
-            if (mCurState == DEFAULT) {
+            if (sCurState == DEFAULT) {
                 List<AccessibilityNodeInfo> checkRedNodeInfos = null;
                 List<AccessibilityNodeInfo> ownerRed = rootInActiveWindow.findAccessibilityNodeInfosByText("查看红包");
                 List<AccessibilityNodeInfo> otherRed = rootInActiveWindow.findAccessibilityNodeInfosByText("领取红包");
@@ -89,7 +114,7 @@ public class RedEnvelopAccessibility extends AccessibilityService {
                                         if (linearNodeInfoRoot != null) {
                                             if (linearNodeInfoRoot.isClickable()) {
                                                 linearNodeInfoRoot.performAction(AccessibilityNodeInfo.ACTION_CLICK);
-                                                mCurState = CHECK_RED;
+                                                sCurState = CHECK_RED;
                                             }
                                         }
                                     }
@@ -103,42 +128,24 @@ public class RedEnvelopAccessibility extends AccessibilityService {
             }
 
             //点击抢红包
-            if (mCurState == CHECK_RED) {
-                List<AccessibilityNodeInfo> getRedNodeInfos = rootInActiveWindow.findAccessibilityNodeInfosByText("发了一个红包，金额随机");
-                for (int i = 0; i < getRedNodeInfos.size(); i++) {
-                    AccessibilityNodeInfo payNodeTextNode = getRedNodeInfos.get(i);
-                    AccessibilityNodeInfo payNodeLinearNode = payNodeTextNode.getParent();
-                    if (payNodeLinearNode != null) {
-                        AccessibilityNodeInfo payNodeLinearNodeParent = payNodeLinearNode.getParent();
-                        if (payNodeLinearNodeParent != null) {
-                            if (payNodeLinearNodeParent.getChildCount() > 2) {
-                                final AccessibilityNodeInfo getRedNode = payNodeLinearNodeParent.getChild(2);
-                                if (getRedNode != null) {
-                                    if (getRedNode.getClassName().equals(Button.class.getName())) {
-                                        mHandler.postDelayed(new Runnable() {
-                                            @Override
-                                            public void run() {
-                                                getRedNode.performAction(AccessibilityNodeInfo.ACTION_CLICK);
-                                                mCurState = GET_RED;
-                                            }
-                                        }, 800);
-
-                                    }
-                                }
-                            }
-
-                        }
-
-                    }
-
-                }
-            }
-            //已经抢到了红包，之后就点击返回键
-            if (mCurState == GET_RED) {
+            if (sCurState == CHECK_RED) {
+                //直接点击对应位置
+                final SharedPreferences sp = getSharedPreferences(RedEnvelopAccessibility.RED_ENVELOP_SP, MODE_PRIVATE);
                 mHandler.postDelayed(new Runnable() {
                     @Override
                     public void run() {
-                        mCurState = DEFAULT;
+                        sCurState = GET_RED;
+                        pressLocation(new Point(sp.getInt(RedEnvelopAccessibility.SET_LOCATION_X, 500),
+                                sp.getInt(RedEnvelopAccessibility.SET_LOCATION_Y, 1120)));
+                    }
+                }, sp.getInt(SET_DELAY_TIME, 500));
+            }
+            //已经抢到了红包，之后就点击返回键
+            if (sCurState == GET_RED) {
+                mHandler.postDelayed(new Runnable() {
+                    @Override
+                    public void run() {
+                        sCurState = DEFAULT;
                         List<AccessibilityNodeInfo> endNodeInfos1 = rootInActiveWindow.findAccessibilityNodeInfosByText("已存入零钱，可直接消费");
                         List<AccessibilityNodeInfo> endNodeInfos2 = rootInActiveWindow.findAccessibilityNodeInfosByText("手慢了，红包派完了");
                         List<AccessibilityNodeInfo> endNodeInfos3 = rootInActiveWindow.findAccessibilityNodeInfosByText("已存入零钱，可用于发红包");
