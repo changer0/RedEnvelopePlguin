@@ -8,12 +8,14 @@
     tools:context="com.example.zhanglulu.redenvelopeplgu_in.MainActivity">
 
     <Switch
+        android:padding="10dp"
         android:id="@+id/start"
         android:text="开启抢红包插件"
         android:layout_width="match_parent"
         android:layout_height="wrap_content" />
 
     <Switch
+        android:padding="10dp"
         android:id="@+id/set_get_owner_red"
         android:text="抢自己发的红包"
         android:layout_width="match_parent"
@@ -79,5 +81,12 @@
         android:id="@+id/set_location"
         android:layout_width="match_parent"
         android:layout_height="wrap_content" />
+
+    <Button
+        android:text="还原默认位置"
+        android:id="@+id/reset_location"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content" />
+
 
 </LinearLayout>

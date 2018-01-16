@@ -74,18 +74,32 @@ public class MainActivity extends AppCompatActivity {
                 SharedPreferences sp = getSharedPreferences(RedEnvelopAccessibility.RED_ENVELOP_SP, MODE_PRIVATE);
                 sp.edit().putInt(RedEnvelopAccessibility.SET_LOCATION_X, Integer.valueOf(mX.getText().toString())).apply();
                 sp.edit().putInt(RedEnvelopAccessibility.SET_LOCATION_Y, Integer.valueOf(mY.getText().toString())).apply();
-                Toast.makeText(MainActivity.this, "成功抢红包位置 x:" + mX.getText().toString() + " y:" + mY.getText().toString() , Toast.LENGTH_SHORT).show();
+                Toast.makeText(MainActivity.this, "成功设置抢红包位置 x:" + mX.getText().toString() + " y:" + mY.getText().toString() , Toast.LENGTH_SHORT).show();
             }
         });
 
+        //设置抢自己的红包
         mSetOwnerSwitcher = (Switch) findViewById(R.id.set_get_owner_red);
         mSetOwnerSwitcher.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
             @Override
             public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+                SharedPreferences sp = getSharedPreferences(RedEnvelopAccessibility.RED_ENVELOP_SP, MODE_PRIVATE);
                 if (buttonView.isChecked()) {
-                    SharedPreferences sp = getSharedPreferences(RedEnvelopAccessibility.RED_ENVELOP_SP, MODE_PRIVATE);
-
+                    sp.edit().putBoolean(RedEnvelopAccessibility.SET_OWNER_RED, true).apply();
+                } else {
+                    sp.edit().putBoolean(RedEnvelopAccessibility.SET_OWNER_RED, false).apply();
                 }
+            }
+        });
+
+        //还原默认位置
+        findViewById(R.id.reset_location).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                SharedPreferences sp = getSharedPreferences(RedEnvelopAccessibility.RED_ENVELOP_SP, MODE_PRIVATE);
+                sp.edit().putInt(RedEnvelopAccessibility.SET_LOCATION_X, 500).apply();
+                sp.edit().putInt(RedEnvelopAccessibility.SET_LOCATION_Y, 1120).apply();
+                onResume();
             }
         });
     }
@@ -98,7 +112,13 @@ public class MainActivity extends AppCompatActivity {
         } else {
             mStartSwitch.setChecked(false);
         }
+
         SharedPreferences sp = getSharedPreferences(RedEnvelopAccessibility.RED_ENVELOP_SP, MODE_PRIVATE);
+        if (sp.getBoolean(RedEnvelopAccessibility.SET_OWNER_RED, false)) {
+            mSetOwnerSwitcher.setChecked(true);
+        } else {
+            mSetOwnerSwitcher.setChecked(false);
+        }
         mDelayTimeEd.setText(String.valueOf(sp.getInt(RedEnvelopAccessibility.SET_DELAY_TIME, 500)));
         mX.setText(String.valueOf(sp.getInt(RedEnvelopAccessibility.SET_LOCATION_X, 500)));
         mY.setText(String.valueOf(sp.getInt(RedEnvelopAccessibility.SET_LOCATION_Y, 1120)));
